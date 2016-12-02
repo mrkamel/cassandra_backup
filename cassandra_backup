@@ -33,13 +33,13 @@ class CassandraBackup < Thor
 
       bucket.objects(prefix: s3_snapshot_path).delete
 
-      bucket.object(File.join(s3_snapshot_path, hostname, "ring.txt")).put(open("/tmp/ring.txt", "rb"))
-      bucket.object(File.join(s3_snapshot_path, hostname, "schema.cql")).put(open("/tmp/schema.cql", "rb"))
+      bucket.object(File.join(s3_snapshot_path, hostname, "ring.txt")).put(body: open("/tmp/ring.txt", "rb"))
+      bucket.object(File.join(s3_snapshot_path, hostname, "schema.cql")).put(body: open("/tmp/schema.cql", "rb"))
 
       files.each do |file|
         keyspace, table, _, _, filename = file.split("/")
 
-        bucket.object(File.join(s3_snapshot_path, hostname, keyspace, table.gsub(/-.+/, ""), file)).put(body: open(file, "rb"))
+        bucket.object(File.join(s3_snapshot_path, hostname, keyspace, table.gsub(/-.+/, ""), filename)).put(body: open(file, "rb"))
       end
 
       execute! "sudo -u cassandra /usr/local/cassandra/bin/nodetool clearsnapshot"
