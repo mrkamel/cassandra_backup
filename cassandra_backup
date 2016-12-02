@@ -14,7 +14,7 @@ class CassandraBackup < Thor
 
   def backup
     config = YAML.load_file(options.config)
-    hostname = `hostname`
+    hostname = `hostname`.strip
 
     bucket = Aws::S3::Resource.new(client: Aws::S3::Client.new(region: config["s3"]["region"], access_key_id: config["s3"]["access_key_id"], secret_access_key: config["s3"]["secret_access_key"])).bucket(config["s3"]["bucket"])
 
@@ -42,7 +42,7 @@ class CassandraBackup < Thor
         bucket.object(File.join(s3_snapshot_path, hostname, keyspace, table.gsub(/-.+/, ""), file)).put(body: open(file, "rb"))
       end
 
-      execute! "sudo -u cassandra /usr/local/cassandra/bin/clearsnapshot"
+      execute! "sudo -u cassandra /usr/local/cassandra/bin/nodetool clearsnapshot"
     ensure
       FileUtils.cd pwd
     end
