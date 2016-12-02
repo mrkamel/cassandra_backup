@@ -31,6 +31,8 @@ class CassandraBackup < Thor
 
       files = Dir[File.join("*/*/snapshots", options.snapshot_name, "/*")]
 
+      puts "deleting existing snapshot: #{s3_snapshot_path}"
+
       bucket.objects(prefix: s3_snapshot_path).batch_delete!
 
       bucket.object(File.join(s3_snapshot_path, "ring.txt")).put(body: open("/tmp/ring.txt", "rb"))
