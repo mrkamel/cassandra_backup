@@ -25,7 +25,7 @@ class CassandraBackup < Thor
       execute! "sudo -u cassandra /usr/local/cassandra/bin/cqlsh -e 'DESC SCHEMA' #{hostname} > /tmp/schema.cql"
       execute! "sudo -u cassandra /usr/local/cassandra/bin/nodetool snapshot -t #{options.snapshot_name}"
 
-      s3_snapshot_path = File.join(config["s3"]["base_path"], options.snapshot_name, "/")
+      s3_snapshot_path = File.join(config["s3"]["base_path"], options.snapshot_name, hostname)
 
       FileUtils.cd "/usr/local/cassandra/data/data"
 
@@ -33,13 +33,13 @@ class CassandraBackup < Thor
 
       bucket.objects(prefix: s3_snapshot_path).batch_delete!
 
-      bucket.object(File.join(s3_snapshot_path, hostname, "ring.txt")).put(body: open("/tmp/ring.txt", "rb"))
-      bucket.object(File.join(s3_snapshot_path, hostname, "schema.cql")).put(body: open("/tmp/schema.cql", "rb"))
+      bucket.object(File.join(s3_snapshot_path, "ring.txt")).put(body: open("/tmp/ring.txt", "rb"))
+      bucket.object(File.join(s3_snapshot_path, "schema.cql")).put(body: open("/tmp/schema.cql", "rb"))
 
       files.each do |file|
         keyspace, table, _, _, filename = file.split("/")
 
-        bucket.object(File.join(s3_snapshot_path, hostname, keyspace, table.gsub(/-.+/, ""), filename)).put(body: open(file, "rb"))
+        bucket.object(File.join(s3_snapshot_path, keyspace, table.gsub(/-.+/, ""), filename)).put(body: open(file, "rb"))
       end
 
       execute! "sudo -u cassandra /usr/local/cassandra/bin/nodetool clearsnapshot"
