@@ -23,7 +23,7 @@ class CassandraBackup < Thor
 
       execute! "sudo -u cassandra /usr/local/cassandra/bin/nodetool ring > /tmp/ring.txt"
       execute! "sudo -u cassandra /usr/local/cassandra/bin/cqlsh -h `hostname` -e 'DESC SCHEMA' > /tmp/schema.cql"
-      execute! "sudo -u cassandra /usr/local/cassandra/bin/snapshot -t #{options.snapshot_name}"
+      execute! "sudo -u cassandra /usr/local/cassandra/bin/nodetool snapshot -t #{options.snapshot_name}"
 
       s3_snapshot_path = File.join(config["s3"]["base_path"], options.snapshot_name, "/")
 
