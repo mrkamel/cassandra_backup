@@ -4,4 +4,5 @@ s3:
   access_key_id: access key id
   secret_access_key: secret access key
   bucket: bucket
+  base_path: base/path/
 

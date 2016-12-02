@@ -14,15 +14,15 @@ class CassandraBackup < Thor
 
   def backup
     config = YAML.load_file(options.config)
+    hostname = `hostname`
 
     bucket = Aws::S3::Resource.new(client: Aws::S3::Client.new(region: config["s3"]["region"], access_key_id: config["s3"]["access_key_id"], secret_access_key: config["s3"]["secret_access_key"])).bucket(config["s3"]["bucket"])
 
     pwd = FileUtils.pwd
 
     begin
-
       execute! "sudo -u cassandra /usr/local/cassandra/bin/nodetool ring > /tmp/ring.txt"
-      execute! "sudo -u cassandra /usr/local/cassandra/bin/cqlsh -h `hostname` -e 'DESC SCHEMA' > /tmp/schema.cql"
+      execute! "sudo -u cassandra /usr/local/cassandra/bin/cqlsh -h #{hostname} -e 'DESC SCHEMA' > /tmp/schema.cql"
       execute! "sudo -u cassandra /usr/local/cassandra/bin/nodetool snapshot -t #{options.snapshot_name}"
 
       s3_snapshot_path = File.join(config["s3"]["base_path"], options.snapshot_name, "/")
@@ -33,10 +33,13 @@ class CassandraBackup < Thor
 
       bucket.objects(prefix: s3_snapshot_path).delete
 
+      bucket.object(File.join(s3_snapshot_path, hostname, "ring.txt")).put(open("/tmp/ring.txt", "rb"))
+      bucket.object(File.join(s3_snapshot_path, hostname, "schema.cql")).put(open("/tmp/schema.cql", "rb"))
+
       files.each do |file|
         keyspace, table, _, _, filename = file.split("/")
 
-        bucket.object(File.join(s3_snapshot_path, `hostname`, keyspace, table.gsub(/-.+/, ""), file)).put(content_type: "application/octet-stream", body: open(file, "rb"))
+        bucket.object(File.join(s3_snapshot_path, hostname, keyspace, table.gsub(/-.+/, ""), file)).put(body: open(file, "rb"))
       end
 
       execute! "sudo -u cassandra /usr/local/cassandra/bin/clearsnapshot"
